@@ -209,7 +209,7 @@ fn print_help() {
          \n\
          Usage: srk-weather-tui [--city \"Name\"] [--fahrenheit|--imperial] [--help]\n\
          \n\
-         Dev: srk-weather-tui --screenshot [current|hourly|daily]  (SVG to stdout)\n\
+         Dev: srk-weather-tui --screenshot [current|hourly|daily|demo]  (SVG to stdout)\n\
          \n\
          Keys: Tab/1/2/3 tabs · n/p city · / search · u units · f favorite ·\n\
          \u{20}     r refresh · ? help · q quit\n\
@@ -263,14 +263,14 @@ fn main() -> Result<()> {
 
     let mut app = App::new(units);
 
-    // Headless screenshot: print SVG of the real UI, no terminal needed.
+    // Headless screenshots: print SVG of the real UI, no terminal needed.
     if let Some(which) = screenshot {
-        let tab = match which.as_str() {
-            "hourly" => Tab::Hourly,
-            "daily" => Tab::Daily,
-            _ => Tab::Current,
-        };
-        print!("{}", shot::render_svg(tab, 100, 30));
+        match which.as_str() {
+            "demo" => print!("{}", shot::render_demo_svg(100, 30)),
+            "hourly" => print!("{}", shot::render_svg(Tab::Hourly, 100, 30)),
+            "daily" => print!("{}", shot::render_svg(Tab::Daily, 100, 30)),
+            _ => print!("{}", shot::render_svg(Tab::Current, 100, 30)),
+        }
         return Ok(());
     }
 

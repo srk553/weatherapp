@@ -7,7 +7,6 @@
 use crate::weather::{City, Current, Day, Hour, Units, WeatherData};
 use crate::{ui, App, Tab};
 use ratatui::{backend::TestBackend, style::Color, Terminal};
-
 const CELL_W: f32 = 8.0;
 const CELL_H: f32 = 16.0;
 const FONT_SIZE: f32 = 13.0;
@@ -129,28 +128,33 @@ fn esc(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
-/// Render `tab` at `width`x`height` cells into a terminal-look SVG string.
-pub fn render_svg(tab: Tab, width: u16, height: u16) -> String {
-    let app = showcase_app(tab);
+fn frame_buffer(app: &App, width: u16, height: u16) -> ratatui::buffer::Buffer {
     let backend = TestBackend::new(width, height);
     let mut terminal = Terminal::new(backend).expect("test backend");
-    terminal
-        .draw(|f| ui::draw(f, &app))
-        .expect("draw showcase");
-    let buf = terminal.backend().buffer().clone();
+    terminal.draw(|f| ui::draw(f, app)).expect("draw frame");
+    terminal.backend().buffer().clone()
+}
 
-    let mut out = String::new();
+fn svg_header(title: &str, width: u16, height: u16) -> String {
     let w = (width as f32 * CELL_W + PAD * 2.0) as u32;
     let h = (height as f32 * CELL_H + PAD * 2.0) as u32;
-    out.push_str(&format!(
+    format!(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{w}\" height=\"{h}\" \
          font-family=\"'DejaVu Sans Mono','Cascadia Mono',monospace\" font-size=\"{FONT_SIZE}\">\n\
-         <title>SRK Weather TUI — {:?} tab</title>\n\
+         <title>{}</title>\n\
          <rect width=\"100%\" height=\"100%\" rx=\"10\" fill=\"#10141A\"/>\n",
-        tab
-    ));
+        esc(title)
+    )
+}
 
+/// Convert one rendered frame buffer to SVG rects+texts (no wrapper).
+fn frame_inner(
+    buf: &ratatui::buffer::Buffer,
+    width: u16,
+    height: u16,
+) -> String {
     use ratatui::style::Modifier;
+    let mut out = String::new();
     for y in 0..height {
         let mut x: u16 = 0;
         while x < width {
@@ -202,6 +206,91 @@ pub fn render_svg(tab: Tab, width: u16, height: u16) -> String {
             }
             x = x2;
         }
+    }
+    out
+}
+
+/// Render `tab` at `width`x`height` cells into a terminal-look SVG string.
+pub fn render_svg(tab: Tab, width: u16, height: u16) -> String {
+    let app = showcase_app(tab);
+    let buf = frame_buffer(&app, width, height);
+    format!(
+        "{}{}</svg>\n",
+        svg_header(&format!("SRK Weather TUI — {tab:?} tab"), width, height),
+        frame_inner(&buf, width, height)
+    )
+}
+
+// ---------------------------------------------------------------------------
+// Animated demo recording (loops right inside the readme, no player needed)
+// ---------------------------------------------------------------------------
+
+/// Script: loading → current → hourly → daily → search typing → results →
+/// help → back. Each entry is (hold_seconds, app_state).
+fn demo_frames() -> Vec<(f64, App)> {
+    let mut frames: Vec<(f64, App)> = Vec::new();
+
+    // 1. Loading state (fresh app, fetch in flight).
+    let mut loading = App::new(Units::Metric);
+    loading.cities = vec![City {
+        name: "Bengaluru".into(),
+        country: "India".into(),
+        lat: 12.9716,
+        lon: 77.5946,
+    }];
+    frames.push((1.2, loading));
+
+    // 2-4. Tabs with data.
+    for (tab, hold) in [(Tab::Current, 2.5), (Tab::Hourly, 2.5), (Tab::Daily, 2.5)] {
+        frames.push((hold, showcase_app(tab)));
+    }
+
+    // 5. Search typing "Paris", char by char.
+    for n in 1.."Paris".len() + 1 {
+        let mut a = showcase_app(Tab::Current);
+        a.search_mode = true;
+        a.search_input = "Paris"[..n].to_string();
+        frames.push((0.3, a));
+    }
+
+    // 6. Search results.
+    let mut results = showcase_app(Tab::Current);
+    results.search_mode = true;
+    results.search_input = "Paris".into();
+    results.search_results = vec![
+        City { name: "Paris".into(), country: "France".into(), lat: 48.85, lon: 2.35 },
+        City { name: "Paris".into(), country: "USA (Texas)".into(), lat: 33.66, lon: -95.56 },
+    ];
+    frames.push((2.0, results));
+
+    // 7. Help overlay.
+    let mut help = showcase_app(Tab::Current);
+    help.show_help = true;
+    frames.push((2.5, help));
+
+    // 8. Back to current.
+    frames.push((1.5, showcase_app(Tab::Current)));
+
+    frames
+}
+
+/// One looping SVG slideshow of the demo script. Plays natively on GitHub.
+pub fn render_demo_svg(width: u16, height: u16) -> String {
+    let frames = demo_frames();
+    let total: f64 = frames.iter().map(|(h, _)| *h).sum();
+    let mut out = svg_header("SRK Weather TUI demo (loops)", width, height);
+    let mut t = 0.0;
+    for (hold, app) in &frames {
+        // Visible window [a, b] as fractions of the loop; discrete stepping.
+        let (a, b) = (t / total, (t + hold) / total);
+        let buf = frame_buffer(app, width, height);
+        out.push_str(&format!(
+            "<g visibility=\"hidden\">{}<animate attributeName=\"visibility\" \
+             dur=\"{total:.2}s\" repeatCount=\"indefinite\" calcMode=\"discrete\" \
+             values=\"hidden;visible;hidden\" keyTimes=\"0;{a:.4};{b:.4}\"/></g>",
+            frame_inner(&buf, width, height)
+        ));
+        t += hold;
     }
     out.push_str("</svg>\n");
     out
