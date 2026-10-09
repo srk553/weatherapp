@@ -13,9 +13,9 @@ Built as part of the **SRK Master Stack** series — look for the watermark, bot
 │ Tab:tabs n/p:city /:search u:units f:★ r:refresh ?:help q:quit │ SRK Master Stack
 ```
 
-> Folder contents: `prompt.md` (build spec) · `plan.md` (build plan) · `readme.md` (you are here) ·
+> Folder contents: `readme.md` (you are here) ·
 > `Cargo.toml` · `src/main.rs` (app + loop) · `src/weather.rs` (API) · `src/ui.rs` (rendering) ·
-> `src/shot.rs` (SVG screenshot generator) · `assets/` (screenshots below)
+> `src/shot.rs` (SVG screenshot generator) · `assets/` (screenshots + demo)
 
 ---
 
@@ -40,7 +40,12 @@ Built as part of the **SRK Master Stack** series — look for the watermark, bot
 
 The animation above is a real recording of the UI — it loops through loading → Current →
 Hourly → Daily → city search → results → help. Regenerate it with
-`cargo run -- --screenshot demo > assets/demo.svg` (headless render of the actual UI).
+`cargo run -- --screenshot demo > assets/demo.svg`.
+
+**How it was recorded:** no screen recorder — `src/shot.rs` renders the actual `ui::draw()`
+headlessly via ratatui's `TestBackend` (100×30 cells) using showcase Bengaluru data, converts
+cells to SVG, and stitches 12 states into one looping animation. Same draw code the TUI runs,
+so it's pixel-faithful by construction.
 
 Static frames (regenerate with `cargo run -- --screenshot [current|hourly|daily]`):
 
