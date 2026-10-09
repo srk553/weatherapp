@@ -4,6 +4,8 @@
 
 mod ui;
 mod weather;
+/// Headless SVG screenshots (`--screenshot`), not part of the TUI itself.
+mod shot;
 
 use anyhow::Result;
 use crossterm::{
@@ -207,6 +209,8 @@ fn print_help() {
          \n\
          Usage: srk-weather-tui [--city \"Name\"] [--fahrenheit|--imperial] [--help]\n\
          \n\
+         Dev: srk-weather-tui --screenshot [current|hourly|daily]  (SVG to stdout)\n\
+         \n\
          Keys: Tab/1/2/3 tabs · n/p city · / search · u units · f favorite ·\n\
          \u{20}     r refresh · ? help · q quit\n\
          \n\
@@ -221,12 +225,26 @@ fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let mut start_city: Option<String> = None;
     let mut units = Units::Metric;
+    let mut screenshot: Option<String> = None;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
             "--help" | "-h" => {
                 print_help();
                 return Ok(());
+            }
+            "--screenshot" => {
+                // Optional value: next arg unless it looks like a flag.
+                match args.get(i + 1) {
+                    Some(next) if !next.starts_with('-') => {
+                        screenshot = Some(next.clone());
+                        i += 1;
+                    }
+                    _ => screenshot = Some("current".into()),
+                }
+            }
+            s if s.starts_with("--screenshot=") => {
+                screenshot = Some(s.trim_start_matches("--screenshot=").to_string());
             }
             "--fahrenheit" | "--imperial" | "-f" => units = Units::Imperial,
             "--city" => {
@@ -244,6 +262,17 @@ fn main() -> Result<()> {
     }
 
     let mut app = App::new(units);
+
+    // Headless screenshot: print SVG of the real UI, no terminal needed.
+    if let Some(which) = screenshot {
+        let tab = match which.as_str() {
+            "hourly" => Tab::Hourly,
+            "daily" => Tab::Daily,
+            _ => Tab::Current,
+        };
+        print!("{}", shot::render_svg(tab, 100, 30));
+        return Ok(());
+    }
 
     // Resolve --city: preset match first, else geocode first hit (offline-safe).
     if let Some(name) = start_city {

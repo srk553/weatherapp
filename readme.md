@@ -1,5 +1,7 @@
 # ☀ SRK Weather TUI
 
+![SRK Weather TUI — Current tab screenshot](assets/shot-current.svg)
+
 A cool keyboard-driven terminal weather app in **Rust**.
 Built as part of the **SRK Master Stack** series — look for the watermark, bottom-right, on every screen.
 
@@ -12,7 +14,8 @@ Built as part of the **SRK Master Stack** series — look for the watermark, bot
 ```
 
 > Folder contents: `prompt.md` (build spec) · `plan.md` (build plan) · `readme.md` (you are here) ·
-> `Cargo.toml` · `src/main.rs` (app + loop) · `src/weather.rs` (API) · `src/ui.rs` (rendering)
+> `Cargo.toml` · `src/main.rs` (app + loop) · `src/weather.rs` (API) · `src/ui.rs` (rendering) ·
+> `src/shot.rs` (SVG screenshot generator) · `assets/` (screenshots below)
 
 ---
 
@@ -32,6 +35,15 @@ Built as part of the **SRK Master Stack** series — look for the watermark, bot
 | 10 | **Watermark** | `SRK Master Stack` bottom-right on **every** screen (tested in CI-style render tests) |
 | 11 | **CLI options** | `--city "Name"`, `--fahrenheit`/`--imperial`, `--help` |
 | 12 | **Robust states** | Loading spinner text, friendly errors with retry, small-terminal guard, terminal always restored (even on panic) |
+
+## Screenshots (all tabs)
+
+Regenerated anytime with `cargo run -- --screenshot [current|hourly|daily] > assets/shot-<tab>.svg`
+— headless render of the real UI, no terminal recorder needed.
+
+![Hourly tab screenshot](assets/shot-hourly.svg)
+
+![Daily tab screenshot](assets/shot-daily.svg)
 
 ## Install & run
 

@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "Cool terminal weather TUI — SRK Master Stack"
 license = "MIT"
+repository = "https://github.com/srk553/weatherapp"
+homepage = "https://github.com/srk553/weatherapp"
+documentation = "https://docs.rs/srk-weather-tui"
 
 [dependencies]
 ratatui = "0.28"
